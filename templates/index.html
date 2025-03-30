@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processor</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: auto;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            display: block;
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            margin: 20px auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+            min-height: 1.2em;
+        }
+        #status.error {
+            color: red;
+        }
+        #status.success {
+            color: green;
+        }
+        #resultImage {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            height: auto;
+            object-fit: contain;
+            background-color: #eee;
+            display: block;
+            margin: 20px auto 0 auto;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin: 20px auto 0 auto;
+        }
+
+      
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                width: 100%;
+                padding: 15px;
+                border-radius: 0; 
+                box-shadow: none;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+</style>
+
+    
+</head>
+<body>
+    <div class="container">
+        <h1>Queens Puzzle Solver</h1>
+        <p>Upload an image of the puzzle grid.</p>
+
+        <input type="file" id="imageInput" accept="image/png, image/jpeg, image/jpg, image/bmp, image/webp">
+
+        <!-- NEW: Wrapper Div for output, initially hidden -->
+        <div id="outputArea" style="display: none;">
+            <div id="status"></div>
+            <div id="loader" class="loader"></div>
+            <img id="resultImage" alt="Processed Image">
+             <!-- Note: Moved resultImage inside outputArea -->
+        </div>
+         <!-- Note: Removed resultImage from here -->
+
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const statusDiv = document.getElementById('status');
+        const resultImage = document.getElementById('resultImage');
+        const loader = document.getElementById('loader');
+        const outputArea = document.getElementById('outputArea'); // Get the new container
+
+        imageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                // If user cancels file selection, optionally hide the output area again
+                outputArea.style.display = 'none';
+                return;
+            }
+
+            // Show the output area now that processing is starting
+            outputArea.style.display = 'block';
+
+            // Set initial state within the output area
+            statusDiv.textContent = 'Processing...';
+            statusDiv.className = '';
+            resultImage.style.display = 'none'; // Make sure image is hidden initially
+            resultImage.src = ''; // Clear previous image src
+            loader.style.display = 'block'; // Show loader
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.error || `Server error: ${response.statusText}`);
+                    }).catch(() => {
+                        // Fallback if response body is not JSON or empty
+                        throw new Error(`Server error: ${response.statusText} (${response.status})`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                loader.style.display = 'none'; // Hide loader
+                if (data.success && data.image) { // Check if success and image data exists
+                    statusDiv.textContent = 'Processing complete!';
+                    statusDiv.className = 'success';
+                    resultImage.src = data.image;
+                    resultImage.style.display = 'block'; // Show the image
+                } else {
+                    // Handle cases where success is false OR success is true but no image returned
+                    statusDiv.textContent = `Error: ${data.error || 'Processing failed or no image returned.'}`;
+                    statusDiv.className = 'error';
+                    resultImage.style.display = 'none'; // Ensure image is hidden on error/failure
+                }
+            })
+            .catch(error => {
+                loader.style.display = 'none'; // Hide loader
+                console.error('Fetch Error:', error);
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.className = 'error';
+                resultImage.style.display = 'none'; // Ensure image is hidden on fetch error
+            });
+        });
+    </script>
+</body>
+</html>
