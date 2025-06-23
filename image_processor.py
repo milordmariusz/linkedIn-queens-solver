@@ -114,6 +114,28 @@ def solve_stars_recursive(row, current_star_positions, occupied_cols, used_numbe
             
     return False
 
+def is_almost_square(pts, tolerance=0.25):
+    """
+    pts: 4 punkty kwadratu w kolejności [pt1, pt2, pt3, pt4]
+    tolerance: dopuszczalne odchylenie od proporcji 1:1
+    """
+    def distance(p1, p2):
+        return np.linalg.norm(np.array(p1) - np.array(p2))
+
+    w1 = distance(pts[0], pts[1])
+    w2 = distance(pts[2], pts[3])
+    h1 = distance(pts[1], pts[2])
+    h2 = distance(pts[3], pts[0])
+
+    width = (w1 + w2) / 2
+    height = (h1 + h2) / 2
+
+    if height == 0 or width == 0:
+        return False
+
+    ratio = width / height
+    return (1 - tolerance) <= ratio <= (1 + tolerance)
+
 def process_image(image_data):
     try:
         nparr = np.frombuffer(image_data, np.uint8)
@@ -311,6 +333,24 @@ def process_image(image_data):
             print(f"Solution found! Star positions (row, col): {star_positions}")
             img_with_stars = img_for_corners.copy()
 
+            invalid_squares = 0
+            total_squares = num_rows_squares * num_cols_squares
+
+            for row in range(num_rows_squares):
+                for col in range(num_cols_squares):
+                    pt1 = tuple(sorted_corners_array[row][col])
+                    pt2 = tuple(sorted_corners_array[row][col + 1])
+                    pt3 = tuple(sorted_corners_array[row + 1][col + 1])
+                    pt4 = tuple(sorted_corners_array[row + 1][col])
+
+                    square_pts = [pt1, pt2, pt3, pt4]
+
+                    if not is_almost_square(square_pts):
+                        invalid_squares += 1
+
+            if invalid_squares / total_squares > 0.2:
+                raise ValueError("Nie można wykryć poprawnej siatki — upewnij się, że zdjęcie jest dobrze docięte i siatka nie jest zniekształcona.")
+
             for r, c in star_positions:
                 if 0 <= r < len(midpoints_grid) and 0 <= c < len(midpoints_grid[r]):
                     midpoint_x, midpoint_y = midpoints_grid[r][c]
@@ -335,7 +375,7 @@ def process_image(image_data):
     except cv2.error as e:
         return None, f"OpenCV Error: {e}. Check image integrity and processing steps."
     except ValueError as e:
-        return None, f"Value Error: {e}. Often related to array shapes or data types."
+        return None, f"{e}"
     except IndexError as e:
          return None, f"Index Error: {e}. Problem accessing elements in lists or arrays, check grid dimensions."
     except Exception as e:
