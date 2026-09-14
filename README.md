@@ -150,12 +150,6 @@ To mała aplikacja webowa we Flasku, która rozwiązuje codzienną grę **Queens
 
 Nie trzeba ręcznie przepisywać planszy.
 
-### Zrzut ekranu
-
-<!-- Umieść zrzut aplikacji w screenshots/app.png i odkomentuj poniższą linię. -->
-
-<!-- ![Zrzut ekranu aplikacji](screenshots/app.png) -->
-
 Aplikacja obsługuje łamigłówki, w których należy umieścić jedną królową w każdym wierszu, każdej kolumnie i każdym obszarze kolorystycznym. Królowe nie mogą znajdować się obok siebie, także po skosie.
 
 Program:
